@@ -3,6 +3,8 @@
 #include<string.h>
 #include <unistd.h>
 #include "constants.h"
+#include "utils.h"
+
 int hop(char** tokens, char* homedir, char* prevdir){
     if(strcmp(tokens[0],"hop") != 0){
         fprintf(stderr, ""RED"not hop command"RESET"\n");
@@ -14,17 +16,9 @@ int hop(char** tokens, char* homedir, char* prevdir){
     int i=1;
     char cwd[MAX];
     while(tokens[i] != NULL){
+        tokens[i]=pre_process_path(tokens[i], homedir);
         //printf("prevdir is %s\n",(prevdir==NULL)?"NULL":"NOT NULL");
-        if(tokens[i][0] == '~'){ 
-            char* fullname = (char*)malloc((strlen(tokens[i])+strlen(homedir))*sizeof(char));
-            strcpy(fullname, homedir);
-            strcat(fullname, 1 + tokens[1]);
-            // printf("homedir is %s : %s\n",homedir,fullname);
-            if(chdir(fullname)<0){
-                fprintf(stderr, ""RED"%s: No such directory"RESET"\n",fullname);
-                return 1;
-            }
-        }else if(tokens[i][0] == '-'){
+        if(tokens[i][0] == '-'){
             if(strcmp(prevdir,"NULL")==0){
                 fprintf(stderr, ""RED"previous directory undefined"RESET"\n");
                 return 1;

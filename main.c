@@ -27,7 +27,7 @@ int printprompt(char* homedirbuf){
     else{
         path = cwdbuf;
     }
-    printf("<"GRN"%s@%s"WHT":"BLU"%s"RESET">",loginbuf,hostbuf,path);
+    printf("<"GRN"%s@%s"WHT":"BLU"%s"RESET"> ",loginbuf,hostbuf,path);
 
     return 0;
 }
@@ -44,11 +44,16 @@ void shell_loop() {
         printprompt(homedir);
         input = read_input();
         args = tokenise_input(input);
-        status = execute_command(args, homedir, &prevdir);
+        if(args[0] != NULL){ // do nothing if empty input
+            if(strcmp(args[0],"quit")==0) break; // command to quit shell
+            status = execute_command(args, homedir, &prevdir); // run given command
+        }
+        
 
-        /* free(input);
-        free(args); */
+        
     }while(1);
+    /* free(input);
+    free(args); */
 }
 
 int main(){

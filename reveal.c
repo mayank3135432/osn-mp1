@@ -12,7 +12,15 @@ further prompt : let's say i want to implement optional arguments of reveal such
 #include <sys/stat.h>
 #include "constants.h"
 #include <time.h>
+#include <grp.h>
+#include <pwd.h>
 
+#include "utils.h"
+char* append_path_to_dirname(char* cwd, struct dirent *dir){
+    char* path = (char*)malloc(MAX*sizeof(char));
+    snprintf(path, MAX, "%s/%s", cwd, dir->d_name);
+    return path;
+}
 // Function to implement the 'reveal' command
 int reveal(char **tokens, char* homedir, char* prevdir){
     DIR *d;
@@ -25,6 +33,7 @@ int reveal(char **tokens, char* homedir, char* prevdir){
 
     // Parse options
     while (tokens[i] != NULL){
+        tokens[i] = pre_process_path(tokens[i], homedir);
         if(strcmp(tokens[i],"-")==0){
             //printf("reveal : prevdir is %s\n",prevdir);
             cwd = prevdir;
@@ -36,14 +45,6 @@ int reveal(char **tokens, char* homedir, char* prevdir){
             if (strchr(tokens[i], 'l')) {
                 show_long = 1; // Show long format
             }
-        }
-        else if(tokens[i][0] == '~'){            
-            char* fullname = (char*)malloc((strlen(tokens[i])+strlen(homedir))*sizeof(char));
-            strcpy(fullname, homedir);
-            strcat(fullname, 1 + tokens[1]);
-            
-            cwd = fullname;
-            //printf("homedir is %s : inputdir is %s\n",homedir,cwd);
         }
         else{
             cwd = tokens[i];
@@ -62,14 +63,22 @@ int reveal(char **tokens, char* homedir, char* prevdir){
     }
 
     // Open the current directory
+    //printf("directory to b opened is %s\n",cwd);
     d = opendir(cwd);
     if (d == NULL) {
         fprintf(stderr, ""RED"could not opendir"RESET"\n");
         return 1;
     }
 
+    
+/*     int fx = fork();
+    if(fx>0) return 0;
+    chdir(cwd);
+ */
+
     // Read and print each entry in the directory
     while ((dir = readdir(d)) != NULL) {
+        
         // Skip dotfiles if -a is not specified
         if (!show_all && dir->d_name[0] == '.') {
             continue;
@@ -77,11 +86,20 @@ int reveal(char **tokens, char* homedir, char* prevdir){
 
         // Print long format if -l is specified
         if (show_long) {
-            if (stat(dir->d_name, &file_stat) == -1) {
-                perror("stat");
+            //printf("before segma cwd/dir->d_name is %s/%s\n",cwd,dir->d_name);
+            // edge case when dir->d_name is ..
+            // causes segma
+
+            char* path = (strcmp(dir->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
+            if (stat(path, &file_stat) == -1) {
+                fprintf(stderr, ""RED"could not stat"RESET"\n");
                 continue;
             }
-            printf("%c%c%c%c%c%c%c%c%c%c %ld %s %s %ld %s\n",
+            char loginbuf[MAX];
+            getlogin_r(loginbuf, MAX);
+            char *time_str = ctime(&file_stat.st_mtime);
+            time_str[strlen(time_str) - 1] = '\0';
+            printf("%c%c%c%c%c%c%c%c%c%c %ld %s %s %ld %s ",
                    (S_ISDIR(file_stat.st_mode)) ? 'd' : '-',
                    (file_stat.st_mode & S_IRUSR) ? 'r' : '-',
                    (file_stat.st_mode & S_IWUSR) ? 'w' : '-',
@@ -93,18 +111,43 @@ int reveal(char **tokens, char* homedir, char* prevdir){
                    (file_stat.st_mode & S_IWOTH) ? 'w' : '-',
                    (file_stat.st_mode & S_IXOTH) ? 'x' : '-',
                    file_stat.st_nlink,
-                   getenv("USER"), // Owner (you could improve this with getpwuid)
-                   getenv("USER"), // Group (you could improve this with getgrgid)
+                   getpwuid(file_stat.st_uid)->pw_name,
+                   //getenv("USER"), // Owner (you could improve this with getpwuid)
+                   getgrgid(file_stat.st_gid)->gr_name, // Group (you could improve this with getgrgid)
                    file_stat.st_size,
-                   ctime(&file_stat.st_mtime)
+                   time_str
             );
+            if(S_ISDIR(file_stat.st_mode)){
+                printf(""BLU"%s"RESET"\n", dir->d_name);
+            }
+            else if(file_stat.st_mode & S_IXUSR){
+                printf(""GRN"%s"RESET"\n", dir->d_name);
+            }
+            else{
+                printf("%s\n", dir->d_name);
+            }
+
         } else {
-            printf("%s\n", dir->d_name);
+            //char* path = append_path_to_dirname(cwd, dir);
+            char* path = (strcmp(dir->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
+            if (stat(path, &file_stat) == -1) {
+                fprintf(stderr, ""RED"reveal : could not stat"RESET"\n");
+                continue;
+            }
+            if(S_ISDIR(file_stat.st_mode)){
+                printf(""BLU"%s"RESET"\n", dir->d_name);
+            }
+            else if(file_stat.st_mode & S_IXUSR){
+                printf(""GRN"%s"RESET"\n", dir->d_name);
+            }
+            else{
+                printf("%s\n", dir->d_name);
+            }
         }
     }
 
     // Close the directory
     closedir(d);
-    return 1;
+    return 0;
 }
 

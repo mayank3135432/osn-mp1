@@ -1,0 +1,1 @@
+char* pre_process_path(char* path, char* homedir);
