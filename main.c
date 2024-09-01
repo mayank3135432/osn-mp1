@@ -38,14 +38,13 @@ void shell_loop() {
     char *input;
     char copybuf[MAX+1];
     char **args;
-    int status = 1;
     char homedir[MAX];
     char* prevdir = "NULL";
     getcwd(homedir, MAX);
     char* history_file = pre_process_path(HISTORY_FILE, homedir);
     
     printf(""YEL"history file is at %s"RESET"\n", history_file);
-    FILE* fptr = fopen("./.myhistory", "w");
+    FILE* fptr = fopen("./.myhistory", "a");
     fclose(fptr);
     // strcpy(prevdir, homedir);
     do{
@@ -56,7 +55,7 @@ void shell_loop() {
         if(args[0] != NULL){ // do nothing if empty input
             if(strcmp(args[0],"quit")==0) break; // command to quit shell
             update_history(copybuf, history_file);
-            status = execute_command(args, homedir, &prevdir, copybuf); // run given command
+            execute_command(args, homedir, &prevdir, copybuf); // run given command
         }
         //printf("%s\n",copybuf);
         

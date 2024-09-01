@@ -14,7 +14,6 @@ int hop(char** tokens, char* homedir, char* prevdir){
         chdir(homedir);
     }
     int i=1;
-    char cwd[MAX];
     while(tokens[i] != NULL){
         tokens[i]=pre_process_path(tokens[i], homedir);
         //printf("prevdir is %s\n",(prevdir==NULL)?"NULL":"NOT NULL");

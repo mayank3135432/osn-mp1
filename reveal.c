@@ -24,7 +24,6 @@ char* append_path_to_dirname(char* cwd, struct dirent *dir){
 // Function to implement the 'reveal' command
 int reveal(char **tokens, char* homedir, char* prevdir){
     DIR *d;
-    struct dirent **namelist;
     struct dirent *dir;
     struct stat file_stat;
     struct passwd *pw;

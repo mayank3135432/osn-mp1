@@ -8,12 +8,14 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include "constants.h"
 #include "hop.h"
 #include "pwd.h"
 #include "reveal.h"
 #include "proclore.h"
 #include "log.h"
+#include "seek.h"
 
 
 char *read_input(){
@@ -53,7 +55,43 @@ char** tokenise_input(char* X){
     return tokens;
 }
 
+void handle_sigchld() {
+    // Wait for all dead child processes
+    while (waitpid(-1, NULL, WNOHANG) > 0) {}
+}
+
 int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input){
+    if(tokens[0]==NULL) return 0;
+    for(int i=0; tokens[i] != NULL; i++){
+        if(strcmp(tokens[i], "&")==0){
+            tokens[i]=NULL;
+            struct sigaction sa;
+            sa.sa_handler = &handle_sigchld;
+            sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+            sigemptyset(&sa.sa_mask);
+            if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+                perror("sigaction");
+                exit(EXIT_FAILURE);
+            }
+            int proc_id = fork();
+            if(proc_id==0){
+                int eid = execute_command(tokens, homedir, ptrprevdir, input);
+                exit(eid);
+            }
+            printf(""MAG"Process running in background with PID: "RESET"%d\n", proc_id);
+            execute_command(tokens+i+1, homedir, ptrprevdir, input);
+            return 0;
+        }
+        if(strcmp(tokens[i], ";")==0){
+            // replace first semicolon with NULL
+            // and execute the tokens before it
+            // and then recursively apply execute to the rest of the tokens
+            tokens[i]=NULL; 
+            execute_command(tokens, homedir, ptrprevdir, input); 
+            execute_command(tokens+i+1, homedir, ptrprevdir, input);
+            return 0;
+        }
+    }
     
     if(strcmp(tokens[0],"hop")==0){
         char cwd[MAX];
@@ -76,19 +114,31 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
     else if(strcmp(tokens[0], "log")==0){
         log_func(tokens, homedir, ptrprevdir, input);
     }
+    else if(strcmp(tokens[0], "seek")==0){
+        seek(tokens, homedir);
+    }
     else{
-        fprintf(stderr, ""RED"INVALID COMMAND %s\n"RESET"",tokens[0]);
+        struct sigaction sa;
+        sa.sa_handler = &handle_sigchld;
+        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+        sigemptyset(&sa.sa_mask);
+        if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+            perror("sigaction");
+            exit(EXIT_FAILURE);
+        }
+        int proc_id = fork();
+        if(proc_id==0){
+            int ecod = execvp(tokens[0], tokens);
+            fprintf(stderr, ""RED"INVALID COMMAND %s\n"RESET"",tokens[0]);
+            exit(ecod);
+        }else if (proc_id > 0) { // Parent process
+            int status;
+            waitpid(proc_id, &status, 0);
+        }
+        
         return 1;
     }
     
 
     return 0;
 }
-
-
-
-
-
-
-
-
