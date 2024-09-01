@@ -1,3 +1,8 @@
+[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/Qiz9msrr)
+# mini-project-1-template
+
+  
+    
 Details:  
 Specification 2:  
     MAX value for input lenght and most other stuff is set to 4096  
@@ -8,22 +13,25 @@ Specification 2:
         sleep 5 & echo hello    # valid command  
         sleep 5&echo hello    # invalid command  
     implemented commands like hop, reveal, ...etc can also be run in background with '&'.  
+      
 Specification 3:  
     the previous directory '-' is left undefined at the beginning of each shell session.  
     if multiple directory, hop changes directory sequentially, ultimately ending up at the last directory  
     In case of a command such as 'hop t1 -' , the previous directory is NOT redefined to t1  
+      
 Specification 5:  
     erroneous commands are also stored in log.  
     history file will be created at the home directory if not present already.  
     history file is preserved across different shell sessions.  
     If you run a.out from a different directory (different home), a different history file will be maintained.  
     commands containing log will not be stored in history.  
+      
 Specification 8:  
     seek does not go through symlinks.  
     seek does not take in '-' like hop does.
 
                     
-
+  
 Instructions:
 to compile, run make
 
