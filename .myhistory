@@ -1,9 +1,3 @@
-proclore 207991
-vim input.c
-code .
-firefox
-echo 44
-ls
 dddk
 ddkcd &
 proclore 208219
@@ -13,3 +7,9 @@ reveal
 reveallog
 loglog
 reveal
+hop .. /
+hop -
+hop - /
+hop wwww ..
+hop .. /
+hop ~ .. ~
