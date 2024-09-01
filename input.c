@@ -12,6 +12,8 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 #include "hop.h"
 #include "pwd.h"
 #include "reveal.h"
+#include "proclore.h"
+#include "log.h"
 
 
 char *read_input(){
@@ -50,7 +52,9 @@ char** tokenise_input(char* X){
     tokens[count] = NULL;
     return tokens;
 }
-int execute_command(char** tokens, char* homedir, char** ptrprevdir){
+
+int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input){
+    
     if(strcmp(tokens[0],"hop")==0){
         char cwd[MAX];
         getcwd(cwd, MAX);
@@ -66,13 +70,21 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir){
         printf("\n"); // goto nextline
     }else if(strcmp(tokens[0], "reveal")==0){
         reveal(tokens, homedir, *ptrprevdir);
+    }else if(strcmp(tokens[0], "proclore")==0){
+        proclore(tokens);
+    }
+    else if(strcmp(tokens[0], "log")==0){
+        log_func(tokens, homedir, ptrprevdir, input);
     }
     else{
         fprintf(stderr, ""RED"INVALID COMMAND %s\n"RESET"",tokens[0]);
         return 1;
     }
+    
+
     return 0;
 }
+
 
 
 

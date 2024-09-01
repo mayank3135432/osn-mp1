@@ -1,4 +1,6 @@
 Current issues : 
 Shell segmentation faults when enter is pressed without any input. --SOLVED
 Segmentation fault for command reveal -la .. (whenever present directory itelf) --SOLVED
+getgrgid returns NULL if the directory/file is of group 1000
+reveal does not print in lexographic order (missing feature)\
 

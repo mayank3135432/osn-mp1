@@ -78,28 +78,26 @@ int reveal(char **tokens, char* homedir, char* prevdir){
     if(fx>0) return 0;
     chdir(cwd);
  */
-    /* 
     int n = scandir(cwd, &namelist, NULL, alphasort);
     if (n == -1) {
-        perror("scandir");
+        fprintf(stderr, ""RED"could not scandir"RESET"");
         return 1;
-    } 
-    */
+    }
     // Read and print each entry in the directory
-    while ((dir = readdir(d)) != NULL) {
+    for (i = 0; i < n; i++){
         
         // Skip dotfiles if -a is not specified
-        if (!show_all && dir->d_name[0] == '.') {
+        if (!show_all && namelist[i]->d_name[0] == '.') {
             continue;
         }
 
         // Print long format if -l is specified
         if (show_long) {
-            //printf("before segma cwd/dir->d_name is %s/%s\n",cwd,dir->d_name);
-            // edge case when dir->d_name is ..
+            //printf("before segma cwd/namelist[i]->d_name is %s/%s\n",cwd,namelist[i]->d_name);
+            // edge case when namelist[i]->d_name is ..
             // causes segma
 
-            char* path = (strcmp(dir->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
+            char* path = (strcmp(namelist[i]->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
             //printf("before segma path is %s\n",path); --debug line
             if (stat(path, &file_stat) == -1) {
                 fprintf(stderr, ""RED"could not stat"RESET"\n");
@@ -129,31 +127,51 @@ int reveal(char **tokens, char* homedir, char* prevdir){
                    file_stat.st_size,
                    time_str
             );
+            /* 
+            printf("%c%c%c%c%c%c%c%c%c%c %ld %ld %s ",
+                   (S_ISDIR(file_stat.st_mode)) ? 'd' : '-',
+                   (file_stat.st_mode & S_IRUSR) ? 'r' : '-',
+                   (file_stat.st_mode & S_IWUSR) ? 'w' : '-',
+                   (file_stat.st_mode & S_IXUSR) ? 'x' : '-',
+                   (file_stat.st_mode & S_IRGRP) ? 'r' : '-',
+                   (file_stat.st_mode & S_IWGRP) ? 'w' : '-',
+                   (file_stat.st_mode & S_IXGRP) ? 'x' : '-',
+                   (file_stat.st_mode & S_IROTH) ? 'r' : '-',
+                   (file_stat.st_mode & S_IWOTH) ? 'w' : '-',
+                   (file_stat.st_mode & S_IXOTH) ? 'x' : '-',
+                   file_stat.st_nlink,
+                   file_stat.st_size,
+                   time_str
+            );
+             */ 
+            // segma caused here
+            
+            
             if(S_ISDIR(file_stat.st_mode)){
-                printf(""BLU"%s"RESET"\n", dir->d_name);
+                printf(""BLU"%s"RESET"\n", namelist[i]->d_name);
             }
             else if(file_stat.st_mode & S_IXUSR){
-                printf(""GRN"%s"RESET"\n", dir->d_name);
+                printf(""GRN"%s"RESET"\n", namelist[i]->d_name);
             }
             else{
-                printf("%s\n", dir->d_name);
+                printf("%s\n", namelist[i]->d_name);
             }
             
         } else {
             //char* path = append_path_to_dirname(cwd, dir);
-            char* path = (strcmp(dir->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
+            char* path = (strcmp(namelist[i]->d_name, "..") != 0)? append_path_to_dirname(cwd, dir):".."; // handle edge case
             if (stat(path, &file_stat) == -1) {
                 fprintf(stderr, ""RED"reveal : could not stat"RESET"\n");
                 continue;
             }
             if(S_ISDIR(file_stat.st_mode)){
-                printf(""BLU"%s"RESET"\n", dir->d_name);
+                printf(""BLU"%s"RESET"\n", namelist[i]->d_name);
             }
             else if(file_stat.st_mode & S_IXUSR){
-                printf(""GRN"%s"RESET"\n", dir->d_name);
+                printf(""GRN"%s"RESET"\n", namelist[i]->d_name);
             }
             else{
-                printf("%s\n", dir->d_name);
+                printf("%s\n", namelist[i]->d_name);
             }
         }
     }

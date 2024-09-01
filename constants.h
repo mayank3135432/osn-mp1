@@ -8,3 +8,5 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 #define TOKEN_DELIMITERS " \t\r\a\n"
+#define MAX_HISTORY 15
+#define HISTORY_FILE "~/.myhistory"

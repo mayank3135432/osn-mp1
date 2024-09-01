@@ -15,7 +15,8 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 char *read_input();
 
 char** tokenise_input(char* X);
-int execute_command(char** tokens, char* homedir, char** prevdir);
+int execute_command(char** tokens, char* homedir, char** prevdir, char* input);
+
 
 
 

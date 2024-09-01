@@ -7,6 +7,8 @@
 #include "constants.h"
 #include "hop.h"
 #include "input.h"
+#include "log.h"
+#include "utils.h"
 int printprompt(char* homedirbuf){
     char cwdbuf[MAX];
     char loginbuf[MAX];
@@ -34,20 +36,29 @@ int printprompt(char* homedirbuf){
 
 void shell_loop() {
     char *input;
+    char copybuf[MAX+1];
     char **args;
     int status = 1;
     char homedir[MAX];
     char* prevdir = "NULL";
     getcwd(homedir, MAX);
+    char* history_file = pre_process_path(HISTORY_FILE, homedir);
+    
+    printf(""YEL"history file is at %s"RESET"\n", history_file);
+    FILE* fptr = fopen("./.myhistory", "w");
+    fclose(fptr);
     // strcpy(prevdir, homedir);
     do{
         printprompt(homedir);
         input = read_input();
+        strcpy(copybuf, input);
         args = tokenise_input(input);
         if(args[0] != NULL){ // do nothing if empty input
             if(strcmp(args[0],"quit")==0) break; // command to quit shell
-            status = execute_command(args, homedir, &prevdir); // run given command
+            update_history(copybuf, history_file);
+            status = execute_command(args, homedir, &prevdir, copybuf); // run given command
         }
+        //printf("%s\n",copybuf);
         
 
         
@@ -57,17 +68,7 @@ void shell_loop() {
 }
 
 int main(){
+    
     shell_loop();
-    /* char homedir[MAX];
-    getcwd(homedir, MAX);
-    printprompt(homedir);
-    char* X = read_input();
-    char** tokens = tokenise_input(X);
-    for(int i=0;tokens[i]!=NULL;i++){
-        printf("%s,",tokens[i]);
-    }printf("\n");
-    hop(tokens);
-    printprompt(homedir); */
-
     return 0;
 }
