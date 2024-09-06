@@ -1,3 +1,4 @@
+// main.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,9 @@
 #include "input.h"
 #include "log.h"
 #include "utils.h"
+#include "alias.h"
+#include "source.h"
+
 int printprompt(char* homedirbuf){
     char cwdbuf[MAX];
     char loginbuf[MAX];
@@ -31,10 +35,11 @@ int printprompt(char* homedirbuf){
     }
     printf("<"GRN"%s@%s"WHT":"BLU"%s"RESET"> ",loginbuf,hostbuf,path);
 
+
     return 0;
 }
 
-void shell_loop() {
+void shell_loop(AliasList* aliases) {
     char *input;
     char copybuf[MAX+1];
     char **args;
@@ -46,6 +51,8 @@ void shell_loop() {
     printf(""YEL"history file is at %s"RESET"\n", history_file);
     FILE* fptr = fopen("./.myhistory", "a");
     fclose(fptr);
+
+    source_myshrc(homedir, aliases);
     // strcpy(prevdir, homedir);
     do{
         printprompt(homedir);
@@ -55,19 +62,20 @@ void shell_loop() {
         if(args[0] != NULL){ // do nothing if empty input
             if(strcmp(args[0],"quit")==0) break; // command to quit shell
             update_history(copybuf, history_file);
-            execute_command(args, homedir, &prevdir, copybuf); // run given command
+            execute_command(args, homedir, &prevdir, copybuf, aliases, 1); // run given command
         }
         //printf("%s\n",copybuf);
-        
-
+        free(input);
+        free(args);
         
     }while(1);
-    /* free(input);
-    free(args); */
 }
 
 int main(){
-    
-    shell_loop();
+    AliasList* aliases = (AliasList*)malloc(1*sizeof(AliasList));
+    aliases->element = (Alias*)malloc(MAX*sizeof(Alias));
+    aliases->alias_count=0;
+    shell_loop(aliases);
     return 0;
 }
+

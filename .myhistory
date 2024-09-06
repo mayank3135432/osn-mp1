@@ -1,15 +1,15 @@
-dddk
-ddkcd &
-proclore 208219
-ipython
-trash -put *.o shell
+alias findfile = seek -f
 reveal
-reveallog
-loglog
+findfile pwd
+findfile vpatch /media/Games/2hu
+alias finddir = seek -d
+finddir
+finddir thcrap /media/Games
+finddir thcrap /
+ls
 reveal
-hop .. /
-hop -
-hop - /
-hop wwww ..
-hop .. /
-hop ~ .. ~
+a.out
+reveal input.c
+alias
+reveall
+alias

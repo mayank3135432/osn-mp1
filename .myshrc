@@ -1,0 +1,5 @@
+alias reveall = reveal -l
+alias revealla = reveal -la
+alias findfile = seek -f
+alias finddir = seek -d
+alias home = hop ~
