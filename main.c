@@ -49,12 +49,15 @@ void shell_loop(AliasList* aliases) {
     char* history_file = pre_process_path(HISTORY_FILE, homedir);
     
     printf(""YEL"history file is at %s"RESET"\n", history_file);
+    
     FILE* fptr = fopen("./.myhistory", "a");
     fclose(fptr);
 
-    source_myshrc(homedir, aliases);
+    
+    source_myshrc(homedir, aliases); // problem
     // strcpy(prevdir, homedir);
     do{
+        
         printprompt(homedir);
         input = read_input();
         strcpy(copybuf, input);

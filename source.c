@@ -19,18 +19,18 @@ int source_myshrc(char *homedir, AliasList* aliases){
     unsigned long len = 0;
     int read;
     char** tokens;
-
     myshrc_path = pre_process_path("~/.myshrc", homedir);
+    
 
     FILE *file = fopen(myshrc_path, "r");
     if (file == NULL) {
         printf("No .myshrc file found.\n");
         return 1;
     }
-
+    
     while ((read = getline(&line, &len, file)) != -1) {
-        tokens = tokenise_input(line);
         
+        tokens = tokenise_input(line); // problematic
         // If the line is not empty
         if (tokens[0] != NULL) {
             execute_command(tokens, homedir, NULL, line, aliases, 1);

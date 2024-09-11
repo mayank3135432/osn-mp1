@@ -1,15 +1,15 @@
-alias findfile = seek -f
+findfile README
 reveal
-findfile pwd
-findfile vpatch /media/Games/2hu
-alias finddir = seek -d
-finddir
-finddir thcrap /media/Games
-finddir thcrap /
-ls
-reveal
-a.out
-reveal input.c
-alias
-reveall
-alias
+iman
+iman sleep
+man 3 strstr
+ping strstr
+iman strstr
+iMan man
+iman man
+iman strstr
+cat
+echo 'hello world'
+echo hello world
+echo hello world &
+l

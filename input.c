@@ -20,7 +20,9 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 #include "log.h"
 #include "seek.h"
 #include "alias.h"
-
+#include "activities.h"
+#include "ping.h"
+#include "iman.h"
 
 char *read_input(){
     char *input = malloc(MAX * sizeof(char));
@@ -52,7 +54,7 @@ char** tokenise_input(char* X){
 
         count++;
         //printf("%dth loop\n",count++);
-        //printf("%s\n",token);
+        //printf("%s\n",token);        
         token=strtok(NULL, TOKEN_DELIMITERS);
     }
     tokens[count] = NULL;
@@ -66,6 +68,7 @@ void handle_sigchld() {
 
 int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag){
     if(tokens[0]==NULL) return 0;
+    int bg_flag=0;
     if(expand_alias_flag){
         for (int i = 0; i < aliases->alias_count; i++) { // check for aliases
             if (strcmp(aliases->element[i].alias, tokens[0]) == 0) {
@@ -76,7 +79,7 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
         }
     }
     for(int i=0; tokens[i] != NULL; i++){
-        if(strcmp(tokens[i], "&")==0){
+        /* if(strcmp(tokens[i], "&")==0){
             tokens[i]=NULL;
             struct sigaction sa;
             sa.sa_handler = &handle_sigchld;
@@ -94,7 +97,7 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
             printf(""MAG"Process running in background with PID: "RESET"%d\n", proc_id);
             execute_command(tokens+i+1, homedir, ptrprevdir, input, aliases, 1);
             return 0;
-        }
+        } */
         if(strcmp(tokens[i], ";")==0){
             // replace first semicolon with NULL
             // and execute the tokens before it
@@ -103,6 +106,23 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
             execute_command(tokens, homedir, ptrprevdir, input, aliases, 1); 
             execute_command(tokens+i+1, homedir, ptrprevdir, input, aliases, 1);
             return 0;
+        }
+    }
+    for(int i=0; tokens[i] != NULL; i++){
+        if(strchr(tokens[i], '&')){
+            if(strcmp(tokens[i], "&")==0){
+                if(tokens[i+1]!=NULL){
+                    fprintf(stderr, ""RED"unexpected token '&'"RESET"\n");
+                    return 1;
+                }else {
+                    tokens[i] = NULL;
+                    bg_flag = 1;
+                }
+            }
+            else{
+                fprintf(stderr, ""RED"invalid use of '&'"RESET"\n");
+                return 1;
+            }
         }
     }
     if(strcmp(tokens[0], "alias")==0){
@@ -132,6 +152,15 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
     else if(strcmp(tokens[0], "seek")==0){
         seek(tokens, homedir);
     }
+    else if(strcmp(tokens[0], "activities")==0){
+        activities();        
+    }
+    else if(strcmp(tokens[0], "ping")==0){
+        ping(tokens);
+    }
+    else if(strcmp(tokens[0], "iMan")==0){
+        iman(tokens);
+    }
     else{
         struct sigaction sa;
         sa.sa_handler = &handle_sigchld;
@@ -141,20 +170,27 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
             perror("sigaction");
             exit(EXIT_FAILURE);
         }
-        int proc_id = fork();
-        if(proc_id==0){
-            int ecod = execvp(tokens[0], tokens);
-            fprintf(stderr, ""RED"INVALID COMMAND %s\n"RESET"",tokens[0]);
-            exit(ecod);
-        }else if (proc_id > 0) { // Parent process
-            int status;
-            waitpid(proc_id, &status, 0);
+        int pid = fork();
+        if(pid<0){
+            fprintf(stderr, ""RED" Failed to run command (fork failed)"RESET"");
+            return 1;
+        }else if(pid==0){
+            if(execvp(tokens[0], tokens) == -1){
+                fprintf(stderr, ""RED"INVALID COMMAND"RESET"\n");
+                return -1;
+            }
+        }else if(pid>0){
+            if(bg_flag){
+                //setpgid(0, 0);
+                printf("Process running in background with PID: %d\n", pid);
+            }else{
+                //tcsetpgrp(STDIN_FILENO, pid);
+                int status;
+                waitpid(pid, &status, 0);
+                //tcsetpgrp(STDIN_FILENO, getpid());
+            }
         }
-        
-        return 1;
     }
-    
-
     return 0;
 }
 
