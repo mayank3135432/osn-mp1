@@ -42,3 +42,21 @@ void printtokens(char** tokens){
     printf("stitched command world be is: '%s'\n", str);
     //printf("stitched newtokens will be");
 }
+
+void printlistoftokens(char*** list){
+    for(int a=0;list[a]!=NULL;a++){
+        printf("[ ");
+        for(int b=0;list[a][b]!=NULL;b++){
+            printf("'%s',",list[a][b]);
+        }printf("]\n");
+    }
+}
+void free_split_tokens(char*** list){
+    for (int i=0; list[i] != NULL; i++) {
+        for (int j=0; list[i][j] != NULL; j++) {
+            free(list[i][j]);
+        }
+        free(list[i]);
+    }
+    free(list);
+}

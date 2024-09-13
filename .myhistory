@@ -1,15 +1,15 @@
-findfile README
+./[F
+make
+reveall
+aaa < echo
+wc < aaa
+wc < hop.
+wc < hopc
+wc < hop.c
 reveal
-iman
-iman sleep
-man 3 strstr
-ping strstr
-iman strstr
-iMan man
-iman man
-iman strstr
-cat
-echo 'hello world'
-echo hello world
-echo hello world &
-l
+reveal -la
+reveal wc
+reveal -l wc
+ls
+ls > a.txt
+cat a.txt

@@ -13,7 +13,7 @@ https://chatgpt.com/share/449aa3ab-08df-4d2d-b10d-33886207b543 - the last prompt
 #include "input.h"
 #include "utils.h"
 
-int source_myshrc(char *homedir, AliasList* aliases){
+int source_myshrc(char *homedir, AliasList* aliases, pid_t shell_pid){
     char* myshrc_path;
     char *line = NULL;
     unsigned long len = 0;
@@ -33,7 +33,7 @@ int source_myshrc(char *homedir, AliasList* aliases){
         tokens = tokenise_input(line); // problematic
         // If the line is not empty
         if (tokens[0] != NULL) {
-            execute_command(tokens, homedir, NULL, line, aliases, 1);
+            execute_command(tokens, homedir, NULL, line, aliases, 1, shell_pid);
         }
         
         free(tokens);

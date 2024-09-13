@@ -18,7 +18,7 @@ prompt: I literally just pasted the rest of my files and politely asked it to im
 #include "utils.h"
 
 
-int log_func(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases){
+int log_func(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, pid_t shell_pid){
     char* history_file = pre_process_path(HISTORY_FILE, homedir);
     if(tokens[1] == NULL){
         print_history(history_file);
@@ -28,13 +28,13 @@ int log_func(char** tokens, char* homedir, char** ptrprevdir, char* input, Alias
     }
     else if(strcmp(tokens[1], "execute")==0){
         int index = atoi(tokens[2]);
-        execute_history_command(index, homedir, ptrprevdir, input, history_file, aliases);
+        execute_history_command(index, homedir, ptrprevdir, input, history_file, aliases, shell_pid);
     }
     return 0;
 
 }
 
-void execute_history_command(int index, char* homedir, char** ptrprevdir, char* input, char* history_file, AliasList* aliases){
+void execute_history_command(int index, char* homedir, char** ptrprevdir, char* input, char* history_file, AliasList* aliases, pid_t shell_pid){
     FILE *fptr = fopen(history_file, "r");
     if (!fptr) {
         perror("Failed to open history file");
@@ -48,7 +48,7 @@ void execute_history_command(int index, char* homedir, char** ptrprevdir, char* 
             buffer[strcspn(buffer, "\n")] = 0; // Remove newline
             // Execute command
             char **args = tokenise_input(buffer);
-            execute_command(args, homedir, ptrprevdir, input, aliases, 1);
+            execute_command(args, homedir, ptrprevdir, input, aliases, 1, shell_pid);
             free(args);
             break;
         }

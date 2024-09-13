@@ -5,6 +5,7 @@
 https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 */
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,9 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 #include "activities.h"
 #include "ping.h"
 #include "iman.h"
+#include "pipe.h"
+#include "fgbg.h"
+#include "neonate.h"
 
 char *read_input(){
     char *input = malloc(MAX * sizeof(char));
@@ -53,7 +57,7 @@ char** tokenise_input(char* X){
         tokens[count] = token;
 
         count++;
-        //printf("%dth loop\n",count++);
+        //printf("%dth loop\n",count++); --debug
         //printf("%s\n",token);        
         token=strtok(NULL, TOKEN_DELIMITERS);
     }
@@ -61,50 +65,64 @@ char** tokenise_input(char* X){
     return tokens;
 }
 
+int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag, pid_t shell_pid);
+
+
+
+int RUN_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag, pid_t shell_pid){
+    if(there_are_pipes(tokens)<0){
+        fprintf(stderr, ""RED"Invalid use of pipe"RESET"\n");
+        return 1;
+    }
+    else if(there_are_pipes(tokens)){
+        //printf("Send to handle pipes\n");  --debug
+        execute_piped_commands(tokens, homedir, ptrprevdir, input, aliases, expand_alias_flag, shell_pid);
+        //printf("Send to handle pipes:: RETURNED\n");
+        return 0;
+    }
+    int ER = execute_command(tokens, homedir, ptrprevdir, input, aliases, expand_alias_flag, shell_pid);
+    return ER; // ONAMANAPEAIA LINE OOO
+}
+
+
 void handle_sigchld() {
     // Wait for all dead child processes
     while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag){
+    
+int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag, pid_t shell_pid){
     if(tokens[0]==NULL) return 0;
+    //printf("inside\n");
     int bg_flag=0;
+    int loc=0;
+    int saved_stdin, saved_stdout;
+
+    // Save the original file descriptors for stdin and stdout
+    saved_stdin = dup(STDIN_FILENO);
+    saved_stdout = dup(STDOUT_FILENO);
+
     if(expand_alias_flag){
         for (int i = 0; i < aliases->alias_count; i++) { // check for aliases
             if (strcmp(aliases->element[i].alias, tokens[0]) == 0) {
                 char** newtokens = use_alias(tokens, input, aliases, i);
-                int errco = execute_command(newtokens, homedir, ptrprevdir, input, aliases, 0);
+                int errco = execute_command(newtokens, homedir, ptrprevdir, input, aliases, 0, shell_pid);
+                dup2(saved_stdin, STDIN_FILENO);
+                dup2(saved_stdout, STDOUT_FILENO);
+                close(saved_stdin);
+                close(saved_stdout);
                 return errco;
             }
         }
     }
     for(int i=0; tokens[i] != NULL; i++){
-        /* if(strcmp(tokens[i], "&")==0){
-            tokens[i]=NULL;
-            struct sigaction sa;
-            sa.sa_handler = &handle_sigchld;
-            sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-            sigemptyset(&sa.sa_mask);
-            if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-                perror("sigaction");
-                exit(EXIT_FAILURE);
-            }
-            int proc_id = fork();
-            if(proc_id==0){
-                int eid = execute_command(tokens, homedir, ptrprevdir, input, aliases, 1);
-                exit(eid);
-            }
-            printf(""MAG"Process running in background with PID: "RESET"%d\n", proc_id);
-            execute_command(tokens+i+1, homedir, ptrprevdir, input, aliases, 1);
-            return 0;
-        } */
         if(strcmp(tokens[i], ";")==0){
             // replace first semicolon with NULL
             // and execute the tokens before it
             // and then recursively apply execute to the rest of the tokens
             tokens[i]=NULL; 
-            execute_command(tokens, homedir, ptrprevdir, input, aliases, 1); 
-            execute_command(tokens+i+1, homedir, ptrprevdir, input, aliases, 1);
+            execute_command(tokens, homedir, ptrprevdir, input, aliases, 1, shell_pid); 
+            execute_command(tokens+i+1, homedir, ptrprevdir, input, aliases, 1, shell_pid);
             return 0;
         }
     }
@@ -113,18 +131,26 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
             if(strcmp(tokens[i], "&")==0){
                 if(tokens[i+1]!=NULL){
                     fprintf(stderr, ""RED"unexpected token '&'"RESET"\n");
+                    dup2(saved_stdin, STDIN_FILENO);
+                    dup2(saved_stdout, STDOUT_FILENO);
+                    close(saved_stdin);
+                    close(saved_stdout);
                     return 1;
-                }else {
-                    tokens[i] = NULL;
-                    bg_flag = 1;
                 }
+                tokens[i] = NULL;
+                bg_flag = 1;
             }
             else{
                 fprintf(stderr, ""RED"invalid use of '&'"RESET"\n");
+                dup2(saved_stdin, STDIN_FILENO);
+                dup2(saved_stdout, STDOUT_FILENO);
+                close(saved_stdin);
+                close(saved_stdout);
                 return 1;
             }
         }
     }
+    int is_redirec = handle_redirection(tokens);
     if(strcmp(tokens[0], "alias")==0){
         alias(tokens, aliases);
     }
@@ -137,7 +163,6 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
             }
             strcpy(*ptrprevdir, cwd);
         }
-        //printf("prevdir is %s\n",*ptrprevdir);
     }else if(strcmp(tokens[0], "pwd")==0){
         pwd();
         printf("\n"); // goto nextline
@@ -147,7 +172,7 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
         proclore(tokens);
     }
     else if(strcmp(tokens[0], "log")==0){
-        log_func(tokens, homedir, ptrprevdir, input, aliases);
+        log_func(tokens, homedir, ptrprevdir, input, aliases, shell_pid);
     }
     else if(strcmp(tokens[0], "seek")==0){
         seek(tokens, homedir);
@@ -161,6 +186,15 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
     else if(strcmp(tokens[0], "iMan")==0){
         iman(tokens);
     }
+    else if(strcmp(tokens[0], "fg")==0){
+        fg(tokens);
+    }
+    else if(strcmp(tokens[0], "bg")==0){
+        bg(tokens);
+    }
+    else if(strcmp(tokens[0], "neonate")==0){
+        neonate(tokens);
+    }
     else{
         struct sigaction sa;
         sa.sa_handler = &handle_sigchld;
@@ -168,29 +202,35 @@ int execute_command(char** tokens, char* homedir, char** ptrprevdir, char* input
         sigemptyset(&sa.sa_mask);
         if (sigaction(SIGCHLD, &sa, NULL) == -1) {
             perror("sigaction");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
+        //printf("make new child\n");
         int pid = fork();
         if(pid<0){
             fprintf(stderr, ""RED" Failed to run command (fork failed)"RESET"");
             return 1;
         }else if(pid==0){
+            if(bg_flag) setpgid(0, 0);
             if(execvp(tokens[0], tokens) == -1){
                 fprintf(stderr, ""RED"INVALID COMMAND"RESET"\n");
                 return -1;
             }
+            exit(1);
         }else if(pid>0){
             if(bg_flag){
-                //setpgid(0, 0);
                 printf("Process running in background with PID: %d\n", pid);
             }else{
-                //tcsetpgrp(STDIN_FILENO, pid);
                 int status;
                 waitpid(pid, &status, 0);
-                //tcsetpgrp(STDIN_FILENO, getpid());
             }
         }
     }
+    dup2(saved_stdin, STDIN_FILENO);
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdin);
+    close(saved_stdout);
+
+
     return 0;
 }
 

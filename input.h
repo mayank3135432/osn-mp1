@@ -22,7 +22,9 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07 - first prompt
 char *read_input();
 
 char** tokenise_input(char* X);
-int execute_command(char** tokens, char* homedir, char** prevdir, char* input, AliasList* aliases, int expand_alias_flag);
+int RUN_command(char** tokens, char* homedir, char** ptrprevdir, char* input, AliasList* aliases, int expand_alias_flag, pid_t shell_pid);
+int execute_command(char** tokens, char* homedir, char** prevdir, char* input, AliasList* aliases, int expand_alias_flag, pid_t shell_pid);
+
 //#endif
 
 

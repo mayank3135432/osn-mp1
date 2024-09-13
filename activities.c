@@ -13,17 +13,20 @@ https://chatgpt.com/share/35bfdeb0-151c-4111-bc8e-cfac26358a07
 #include "activities.h"
 #include "constants.h"
 
+
 // Function to get the parent process ID of a given process
-int get_process_info(pid_t pid, pid_t *ppid, char *state, char *name) {
+ProcessIDetails* get_process_info(pid_t pid, pid_t *ppid, char *state, char *name) {
+    
     char path[256];
     snprintf(path, sizeof(path), "%s/%d/%s", PROC_DIR, pid, STATUS_FILE);
     
     FILE *file = fopen(path, "r");
-    if (!file) {
-        return -1;  // Could not open the status file for this process
+    if (!file){
+        return NULL;  // Could not open file
     }
     
-    char line[MAX_LINE_LENGTH];
+    //char* line = (char*)malloc(MAX_LINE_LENGTH*sizeof(char));  --- WHY DOES THIS NOT WORK ?????
+    char line[MAX];
     while (fgets(line, sizeof(line), file)) {
         if (strncmp(line, "PPid:", 5) == 0) {
             *ppid = atoi(line + 6);  // Extract parent process ID
@@ -33,9 +36,15 @@ int get_process_info(pid_t pid, pid_t *ppid, char *state, char *name) {
             sscanf(line, "Name: %s", name);  // Extract process name
         }
     }
+    ProcessIDetails* S = (ProcessIDetails*)malloc(1*sizeof(ProcessIDetails));
+    //S[0]={pid, *ppid, *state, name};
+    S->pid = pid;
+    S->ppid = *ppid;
+    S->state = *state;
+    S->name = name;
     
     fclose(file);
-    return 0;
+    return S;
 }
 
 // Function to get the state as a string
@@ -54,6 +63,8 @@ int compare_processes(const void* A, const void* B){ // pass this into qsort
     ProcessInfo* procB = (ProcessInfo*)B;
     return (procA->pid - procB->pid);
 }
+
+
 
 int activities(){
     pid_t shell_pid = getpid();  // Get the PID of this shell
@@ -80,7 +91,10 @@ int activities(){
         char name[256];
         
         // Get process info for the given PID
-        if (get_process_info(pid, &ppid, &state, name) == 0) {
+        //if (get_process_info(pid, &ppid, &state, name) == S0) {// wut ??
+        ProcessIDetails* procdetails = get_process_info(pid, &ppid, &state, name);
+        if (procdetails != NULL){ // no error
+            //printf("pid(%d,%d) ppid(%d,%d)\n", pid, procdetails->pid, ppid, procdetails->ppid); --debug lines
             if (ppid == shell_pid && process_count < MAX) {
                 child_PROCESSES[process_count].pid = pid;
                 strcpy(child_PROCESSES[process_count].name, name);
@@ -102,7 +116,6 @@ int activities(){
 
     return 0;
 }
-
 /* 
 int main(){
     int a = 1;
@@ -129,5 +142,4 @@ int main(){
     }
     activities();
     return 0;
-}
- */
+} */
